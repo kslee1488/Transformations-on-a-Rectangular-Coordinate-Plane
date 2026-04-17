@@ -35,7 +35,8 @@
       Trophy: <><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7c0 6 3 10 6 10s6-4 6-10z"/></>,
       ArrowRight: <><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></>,
       Compass: <><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></>,
-      GraduationCap: <><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></>
+      GraduationCap: <><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></>,
+      Lightbulb: <><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.2 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></>
     };
 
     const Icon = ({ name, className = "w-6 h-6", ...props }) => (
@@ -88,6 +89,7 @@
       const [isCorrect, setIsCorrect] = useState(false);
       const [isQuizDragging, setIsQuizDragging] = useState(false);
       const [animStep, setAnimStep] = useState(0); // 0: Start, 1: Horizontal Move, 2: Vertical Move (or direct for others)
+      const [showHint, setShowHint] = useState(false);
 
       // Shared Ref for SVG Canvas
       const svgRef = useRef(null);
@@ -297,6 +299,7 @@
         setGuessPoint({ x: 0, y: 0 });
         setQuizAppState('playing');
         setAnimStep(0);
+        setShowHint(false);
       };
 
       const submitQuizAnswer = () => {
@@ -472,10 +475,10 @@
                 
                 {explorerMode === 'reflection' && (
                   <g className="transition-all duration-500 opacity-50">
-                    {reflectAxis === 'x' && <line x1={0} y1={center} x2={svgSize} y2={center} stroke="#eab308" strokeWidth="4" strokeDasharray="8 4" />}
-                    {reflectAxis === 'y' && <line x1={center} y1={0} x2={center} y2={svgSize} stroke="#eab308" strokeWidth="4" strokeDasharray="8 4" />}
-                    {reflectAxis === 'y=h' && <line x1={0} y1={toSvgY(reflectH)} x2={svgSize} y2={toSvgY(reflectH)} stroke="#eab308" strokeWidth="4" strokeDasharray="8 4" />}
-                    {reflectAxis === 'x=k' && <line x1={toSvgX(reflectK)} y1={0} x2={toSvgX(reflectK)} y2={svgSize} stroke="#eab308" strokeWidth="4" strokeDasharray="8 4" />}
+                    {reflectAxis === 'x' && <line x1={0} y1={center} x2={svgSize} y2={center} stroke="#eab308" strokeWidth="8" strokeDasharray="16 8" />}
+                    {reflectAxis === 'y' && <line x1={center} y1={0} x2={center} y2={svgSize} stroke="#eab308" strokeWidth="8" strokeDasharray="16 8" />}
+                    {reflectAxis === 'y=h' && <line x1={0} y1={toSvgY(reflectH)} x2={svgSize} y2={toSvgY(reflectH)} stroke="#eab308" strokeWidth="8" strokeDasharray="16 8" />}
+                    {reflectAxis === 'x=k' && <line x1={toSvgX(reflectK)} y1={0} x2={toSvgX(reflectK)} y2={svgSize} stroke="#eab308" strokeWidth="8" strokeDasharray="16 8" />}
                   </g>
                 )}
 
@@ -589,6 +592,26 @@
                   </p>
                 </div>
 
+                {quizAppState === 'playing' && (question?.type === 'reflection' || question?.type === 'rotation') && (
+                  <div className="mb-6">
+                    <button 
+                      onClick={() => setShowHint(true)}
+                      disabled={showHint}
+                      className={`flex items-center gap-2 px-4 py-3 text-sm font-bold rounded-xl transition-all w-full justify-center ${
+                        showHint 
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' 
+                          : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-300 shadow-sm'
+                      }`}
+                    >
+                      <Icon name="Lightbulb" className="w-5 h-5" /> 
+                      {showHint 
+                        ? `Hint: ${question.type === 'reflection' ? 'Reflection Axis' : 'Reference Rectangle'} is shown on the grid` 
+                        : `Need a Hint? Show ${question.type === 'reflection' ? 'Axis' : 'Rectangle'}`
+                      }
+                    </button>
+                  </div>
+                )}
+
                 {quizAppState === 'playing' ? (
                   <button onClick={submitQuizAnswer} className="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-lg shadow-md transition-colors">
                     Submit Answer
@@ -629,13 +652,35 @@
                   </g>
                 )}
                 
+                {question && question.type === 'reflection' && (
+                  <line
+                    x1={question.params.axis === 'x' ? 0 : center} y1={question.params.axis === 'x' ? center : 0}
+                    x2={question.params.axis === 'x' ? svgSize : center} y2={question.params.axis === 'x' ? center : svgSize}
+                    stroke="#eab308" strokeWidth="8" strokeDasharray="16 8" 
+                    opacity={(quizAppState === 'playing' && showHint) || (quizAppState === 'feedback' && animStep >= 2) ? 0.7 : 0}
+                    className="transition-opacity duration-1000"
+                    style={{ pointerEvents: 'none' }}
+                  />
+                )}
+
+                {question && question.type === 'rotation' && (
+                  <polygon
+                    points={`${center},${center} ${toSvgX(question.origPoint.x)},${center} ${toSvgX(question.origPoint.x)},${toSvgY(question.origPoint.y)} ${center},${toSvgY(question.origPoint.y)}`}
+                    fill="rgba(234, 179, 8, 0.1)"
+                    stroke="#eab308" strokeWidth="3" strokeDasharray="8 4"
+                    opacity={quizAppState === 'playing' && showHint ? 0.7 : 0}
+                    className="transition-opacity duration-1000"
+                    style={{ pointerEvents: 'none' }}
+                  />
+                )}
+
                 {quizAppState === 'feedback' && question && (
                   <g>
                     {question.type === 'reflection' && (
                       <line
                         x1={question.params.axis === 'x' ? 0 : center} y1={question.params.axis === 'x' ? center : 0}
                         x2={question.params.axis === 'x' ? svgSize : center} y2={question.params.axis === 'x' ? center : svgSize}
-                        stroke="#eab308" strokeWidth="4" strokeDasharray="8 4" opacity={animStep >= 2 ? 0.4 : 0}
+                        stroke="#eab308" strokeWidth="8" strokeDasharray="16 8" opacity={animStep >= 2 ? 0.4 : 0}
                         className="transition-opacity duration-1000"
                       />
                     )}
