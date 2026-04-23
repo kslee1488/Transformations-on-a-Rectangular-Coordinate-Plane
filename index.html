@@ -12,7 +12,7 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   
-  <!-- Babel for parsing JSX -->
+  <!-- Babel for parsing JSX in the browser -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
@@ -21,7 +21,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // --- ICON HELPER COMPONENT (Replacing lucide-react) ---
+    // --- ICON HELPER COMPONENTS (Replacing lucide-react) ---
     const iconPaths = {
       Settings2: <><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="7" r="3"/><circle cx="8" cy="17" r="3"/></>,
       Move: <><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="19 9 22 12 19 15"/><polyline points="9 19 12 22 15 19"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></>,
@@ -35,8 +35,7 @@
       Trophy: <><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7c0 6 3 10 6 10s6-4 6-10z"/></>,
       ArrowRight: <><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></>,
       Compass: <><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></>,
-      GraduationCap: <><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></>,
-      Lightbulb: <><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.2 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></>
+      GraduationCap: <><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></>
     };
 
     const Icon = ({ name, className = "w-6 h-6", ...props }) => (
@@ -44,6 +43,21 @@
         {iconPaths[name]}
       </svg>
     );
+
+    // Create wrapper components for each icon to mimic lucide-react imports
+    const Settings2 = (p) => <Icon name="Settings2" {...p} />;
+    const Move = (p) => <Icon name="Move" {...p} />;
+    const FlipHorizontal = (p) => <Icon name="FlipHorizontal" {...p} />;
+    const RotateCcw = (p) => <Icon name="RotateCcw" {...p} />;
+    const Info = (p) => <Icon name="Info" {...p} />;
+    const Shuffle = (p) => <Icon name="Shuffle" {...p} />;
+    const CheckCircle2 = (p) => <Icon name="CheckCircle2" {...p} />;
+    const XCircle = (p) => <Icon name="XCircle" {...p} />;
+    const User = (p) => <Icon name="User" {...p} />;
+    const Trophy = (p) => <Icon name="Trophy" {...p} />;
+    const ArrowRight = (p) => <Icon name="ArrowRight" {...p} />;
+    const Compass = (p) => <Icon name="Compass" {...p} />;
+    const GraduationCap = (p) => <Icon name="GraduationCap" {...p} />;
 
     const CoordinateTransformations = () => {
       // --- COMMON SETTINGS & HELPERS ---
@@ -89,7 +103,6 @@
       const [isCorrect, setIsCorrect] = useState(false);
       const [isQuizDragging, setIsQuizDragging] = useState(false);
       const [animStep, setAnimStep] = useState(0); // 0: Start, 1: Horizontal Move, 2: Vertical Move (or direct for others)
-      const [showHint, setShowHint] = useState(false);
 
       // Shared Ref for SVG Canvas
       const svgRef = useRef(null);
@@ -128,13 +141,16 @@
         const svg = svgRef.current;
         if (!svg) return { x: 0, y: 0 };
         const pt = svg.createSVGPoint();
+        // Support mouse, pointer, and fallback touch coordinates
         pt.x = e.clientX ?? (e.touches?.[0]?.clientX || 0);
         pt.y = e.clientY ?? (e.touches?.[0]?.clientY || 0);
+        // getScreenCTM maps the screen pixels to the actual SVG internal coordinates
         return pt.matrixTransform(svg.getScreenCTM().inverse());
       };
 
       const handleExplorerPointerDown = (id) => (e) => {
         e.stopPropagation();
+        // Lock the pointer to the dragged point so it doesn't drop if moved quickly
         if (e.target.setPointerCapture) {
           try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
         }
@@ -146,6 +162,7 @@
         
         const { x: svgX, y: svgY } = getSvgCoordinates(e);
 
+        // Snap to nearest integer for explorer
         let mathX = Math.round(toMathX(svgX));
         let mathY = Math.round(toMathY(svgY));
 
@@ -218,6 +235,7 @@
           try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
         }
         
+        // Calculates position on click to instantly move P' to the tapped position
         const { x: svgX, y: svgY } = getSvgCoordinates(e);
 
         let mathX = Math.round(toMathX(svgX));
@@ -227,7 +245,7 @@
         mathY = Math.max(-gridSize/2, Math.min(gridSize/2, mathY));
 
         setGuessPoint({ x: mathX, y: mathY });
-        setIsQuizDragging(true); 
+        setIsQuizDragging(true); // Engages dragging automatically after initial click
       };
 
       const handleQuizPointerMove = (e) => {
@@ -235,6 +253,7 @@
         
         const { x: svgX, y: svgY } = getSvgCoordinates(e);
 
+        // Snap to nearest integer for quiz
         let mathX = Math.round(toMathX(svgX));
         let mathY = Math.round(toMathY(svgY));
 
@@ -253,11 +272,13 @@
       };
 
       const generateQuestion = (mode) => {
+        // Clear any pending auto-advance timer to prevent overlapping questions
         if (autoNextTimeout.current) clearTimeout(autoNextTimeout.current);
 
         const types = ['translation', 'reflection', 'rotation'];
         const actualMode = mode === 'mixed' ? types[Math.floor(Math.random() * types.length)] : mode;
         
+        // Keep initial point bounded safely between -6 and 6
         let x = Math.floor(Math.random() * 13) - 6;
         let y = Math.floor(Math.random() * 13) - 6;
         if (x === 0 && y === 0) x = 2; 
@@ -267,6 +288,7 @@
         let correctPoint = { x, y };
 
         if (actualMode === 'translation') {
+          // Calculate max allowed translation so we do not exceed -10 or 10
           let minTx = Math.max(-8, -10 - x);
           let maxTx = Math.min(8, 10 - x);
           params.tx = Math.floor(Math.random() * (maxTx - minTx + 1)) + minTx;
@@ -275,6 +297,7 @@
           let maxTy = Math.min(8, 10 - y);
           params.ty = Math.floor(Math.random() * (maxTy - minTy + 1)) + minTy;
 
+          // Make sure there is at least some movement
           if (params.tx === 0 && params.ty === 0) params.tx = maxTx > 0 ? 1 : -1; 
           
           correctPoint = { x: x + params.tx, y: y + params.ty };
@@ -299,7 +322,6 @@
         setGuessPoint({ x: 0, y: 0 });
         setQuizAppState('playing');
         setAnimStep(0);
-        setShowHint(false);
       };
 
       const submitQuizAnswer = () => {
@@ -307,19 +329,21 @@
         setIsCorrect(correct);
         if (correct) {
           setScore(s => s + 1);
+          // Auto-advance after 4 seconds (approx 1s for animation + 3s wait)
           autoNextTimeout.current = setTimeout(() => {
             generateQuestion(quizMode);
           }, 4000);
         }
         setAttempts(a => a + 1);
         setQuizAppState('feedback');
-        setAnimStep(0); 
+        setAnimStep(0); // Reset to start point
         
+        // Sequence the animation steps based on question type
         if (question.type === 'translation') {
-          setTimeout(() => setAnimStep(1), 50);    
-          setTimeout(() => setAnimStep(2), 1050);  
+          setTimeout(() => setAnimStep(1), 50);     // Step 1: Move horizontally
+          setTimeout(() => setAnimStep(2), 1050);   // Step 2: Move vertically after 1s
         } else {
-          setTimeout(() => setAnimStep(2), 50);    
+          setTimeout(() => setAnimStep(2), 50);     // Direct movement for rotation/reflection
         }
       };
 
@@ -364,9 +388,10 @@
             <div className="w-full lg:w-1/3 flex flex-col gap-6">
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                 <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                  <Icon name="Settings2" className="text-blue-600 w-5 h-5" /> Controls
+                  <Settings2 className="text-blue-600 w-5 h-5" /> Controls
                 </h2>
                 
+                {/* Mode Selector */}
                 <div className="flex bg-slate-100 p-1 rounded-lg mb-6">
                   {['translation', 'reflection', 'rotation'].map((m) => (
                     <button
@@ -380,6 +405,7 @@
                   ))}
                 </div>
 
+                {/* Dynamic Controls */}
                 <div className="min-h-[200px]">
                   {explorerMode === 'translation' && (
                     <div className="space-y-4">
@@ -473,15 +499,17 @@
               >
                 {renderGrid()}
                 
+                {/* Reflection Axis Highlight */}
                 {explorerMode === 'reflection' && (
                   <g className="transition-all duration-500 opacity-50">
-                    {reflectAxis === 'x' && <line x1={0} y1={center} x2={svgSize} y2={center} stroke="#eab308" strokeWidth="8" strokeDasharray="16 8" />}
-                    {reflectAxis === 'y' && <line x1={center} y1={0} x2={center} y2={svgSize} stroke="#eab308" strokeWidth="8" strokeDasharray="16 8" />}
-                    {reflectAxis === 'y=h' && <line x1={0} y1={toSvgY(reflectH)} x2={svgSize} y2={toSvgY(reflectH)} stroke="#eab308" strokeWidth="8" strokeDasharray="16 8" />}
-                    {reflectAxis === 'x=k' && <line x1={toSvgX(reflectK)} y1={0} x2={toSvgX(reflectK)} y2={svgSize} stroke="#eab308" strokeWidth="8" strokeDasharray="16 8" />}
+                    {reflectAxis === 'x' && <line x1={0} y1={center} x2={svgSize} y2={center} stroke="#eab308" strokeWidth="4" strokeDasharray="8 4" />}
+                    {reflectAxis === 'y' && <line x1={center} y1={0} x2={center} y2={svgSize} stroke="#eab308" strokeWidth="4" strokeDasharray="8 4" />}
+                    {reflectAxis === 'y=h' && <line x1={0} y1={toSvgY(reflectH)} x2={svgSize} y2={toSvgY(reflectH)} stroke="#eab308" strokeWidth="4" strokeDasharray="8 4" />}
+                    {reflectAxis === 'x=k' && <line x1={toSvgX(reflectK)} y1={0} x2={toSvgX(reflectK)} y2={svgSize} stroke="#eab308" strokeWidth="4" strokeDasharray="8 4" />}
                   </g>
                 )}
 
+                {/* Mapping Lines */}
                 {transformedPoints.map((p, i) => {
                   const orig = originalPoints[i];
                   if (Math.abs(p.x - orig.x) > 0.01 || Math.abs(p.y - orig.y) > 0.01) {
@@ -490,20 +518,22 @@
                   return null;
                 })}
 
+                {/* Transformed Shape (Bottom, Dotted) */}
                 <polygon points={getPolygonPoints(transformedPoints)} fill="rgba(249, 115, 22, 0.3)" stroke="#f97316" strokeWidth="3" strokeDasharray="6 6" />
                 {transformedPoints.map(p => (
                   <g key={p.id}>
                     <circle cx={toSvgX(p.x)} cy={toSvgY(p.y)} r="7" fill="#ea580c" />
-                    <text x={toSvgX(p.x) + 12} y={toSvgY(p.y) - 12} fontSize="20" fontWeight="bold" fill="#ea580c">{p.id}</text>
+                    <text x={toSvgX(p.x) + 12} y={toSvgY(p.y) - 12} fontSize="20" fontWeight="bold" fill="#ea580c">{p.id}({p.x}, {p.y})</text>
                   </g>
                 ))}
 
+                {/* Original Shape (Top, Solid, Draggable) */}
                 <polygon points={getPolygonPoints(originalPoints)} fill="rgba(59, 130, 246, 0.2)" stroke="#3b82f6" strokeWidth="2" />
                 {originalPoints.map(p => (
                   <g key={p.id} onPointerDown={handleExplorerPointerDown(p.id)} style={{ cursor: explorerDraggingPoint === p.id ? 'grabbing' : 'grab' }}>
                     <circle cx={toSvgX(p.x)} cy={toSvgY(p.y)} r="28" fill="transparent" />
                     <circle cx={toSvgX(p.x)} cy={toSvgY(p.y)} r={explorerDraggingPoint === p.id ? "10" : "7"} fill="#1d4ed8" className="transition-all duration-200" />
-                    <text x={toSvgX(p.x) + 14} y={toSvgY(p.y) - 14} fontSize="20" fontWeight="bold" fill="#1d4ed8" style={{ pointerEvents: 'none' }}>{p.id}</text>
+                    <text x={toSvgX(p.x) + 14} y={toSvgY(p.y) - 14} fontSize="20" fontWeight="bold" fill="#1d4ed8" style={{ pointerEvents: 'none' }}>{p.id}({p.x}, {p.y})</text>
                   </g>
                 ))}
               </svg>
@@ -520,7 +550,7 @@
               <div className="bg-white p-8 rounded-2xl shadow-lg max-w-lg w-full border border-slate-200">
                 <div className="text-center mb-8">
                   <div className="inline-flex items-center justify-center p-4 bg-orange-100 rounded-full mb-4">
-                    <Icon name="GraduationCap" className="w-10 h-10 text-orange-600" />
+                    <GraduationCap className="w-10 h-10 text-orange-600" />
                   </div>
                   <h2 className="text-3xl font-bold text-slate-900 mb-2">Quiz Mode</h2>
                   <p className="text-slate-500">Test your skills in translating, reflecting, and rotating points.</p>
@@ -529,7 +559,7 @@
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Enter your name:</label>
                     <div className="relative">
-                      <Icon name="User" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                       <input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-shadow outline-none" placeholder="Your Name" />
                     </div>
                   </div>
@@ -537,16 +567,16 @@
                     <h3 className="text-sm font-medium text-slate-700 mb-3">Select Quiz Focus:</h3>
                     <div className="grid grid-cols-2 gap-3">
                       <button disabled={!playerName.trim()} onClick={() => startQuiz('translation')} className="flex flex-col items-center gap-2 p-4 rounded-xl border border-slate-200 hover:border-orange-500 hover:bg-orange-50 disabled:opacity-50 disabled:hover:bg-transparent transition-all text-slate-700">
-                        <Icon name="Move" className="w-6 h-6 text-blue-500" /> <span className="font-medium">Translation</span>
+                        <Move className="w-6 h-6 text-blue-500" /> <span className="font-medium">Translation</span>
                       </button>
                       <button disabled={!playerName.trim()} onClick={() => startQuiz('reflection')} className="flex flex-col items-center gap-2 p-4 rounded-xl border border-slate-200 hover:border-orange-500 hover:bg-orange-50 disabled:opacity-50 disabled:hover:bg-transparent transition-all text-slate-700">
-                        <Icon name="FlipHorizontal" className="w-6 h-6 text-emerald-500" /> <span className="font-medium">Reflection</span>
+                        <FlipHorizontal className="w-6 h-6 text-emerald-500" /> <span className="font-medium">Reflection</span>
                       </button>
                       <button disabled={!playerName.trim()} onClick={() => startQuiz('rotation')} className="flex flex-col items-center gap-2 p-4 rounded-xl border border-slate-200 hover:border-orange-500 hover:bg-orange-50 disabled:opacity-50 disabled:hover:bg-transparent transition-all text-slate-700">
-                        <Icon name="RotateCcw" className="w-6 h-6 text-purple-500" /> <span className="font-medium">Rotation</span>
+                        <RotateCcw className="w-6 h-6 text-purple-500" /> <span className="font-medium">Rotation</span>
                       </button>
                       <button disabled={!playerName.trim()} onClick={() => startQuiz('mixed')} className="flex flex-col items-center gap-2 p-4 rounded-xl border border-slate-200 hover:border-orange-500 hover:bg-orange-50 disabled:opacity-50 disabled:hover:bg-transparent transition-all text-slate-700">
-                        <Icon name="Shuffle" className="w-6 h-6 text-orange-500" /> <span className="font-medium">Mixed Mode</span>
+                        <Shuffle className="w-6 h-6 text-orange-500" /> <span className="font-medium">Mixed Mode</span>
                       </button>
                     </div>
                   </div>
@@ -560,11 +590,12 @@
           <div className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 flex flex-col lg:flex-row gap-6">
             <div className="w-full lg:w-1/3 flex flex-col gap-6">
               
+              {/* Quiz Stats Box */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col gap-4">
                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                    <div className="flex items-center gap-2 font-bold text-slate-800"><Icon name="User" className="w-4 h-4 text-orange-600" /> {playerName}</div>
+                    <div className="flex items-center gap-2 font-bold text-slate-800"><User className="w-4 h-4 text-orange-600" /> {playerName}</div>
                     <div className="flex items-center gap-2 font-bold text-lg">
-                      <Icon name="Trophy" className="w-5 h-5 text-yellow-500" /> <span className="text-orange-600">{score}</span><span className="text-slate-400 text-sm">/ {attempts}</span>
+                      <Trophy className="w-5 h-5 text-yellow-500" /> <span className="text-orange-600">{score}</span><span className="text-slate-400 text-sm">/ {attempts}</span>
                     </div>
                  </div>
                  <div className="flex justify-between items-center text-sm">
@@ -586,31 +617,11 @@
                 <div className="text-2xl font-medium text-slate-800 leading-snug mb-6">{getQuizInstructionText()}</div>
                 
                 <div className="bg-orange-50 p-4 rounded-lg border border-orange-100 flex items-start gap-3 mb-6">
-                  <Icon name="Info" className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
+                  <Info className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
                   <p className="text-sm text-orange-800">
                     <span className="font-bold">Click</span> anywhere on the grid or <span className="font-bold">drag</span> the orange point to the correct location!
                   </p>
                 </div>
-
-                {quizAppState === 'playing' && (question?.type === 'reflection' || question?.type === 'rotation') && (
-                  <div className="mb-6">
-                    <button 
-                      onClick={() => setShowHint(true)}
-                      disabled={showHint}
-                      className={`flex items-center gap-2 px-4 py-3 text-sm font-bold rounded-xl transition-all w-full justify-center ${
-                        showHint 
-                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' 
-                          : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-300 shadow-sm'
-                      }`}
-                    >
-                      <Icon name="Lightbulb" className="w-5 h-5" /> 
-                      {showHint 
-                        ? `Hint: ${question.type === 'reflection' ? 'Reflection Axis' : 'Reference Rectangle'} is shown on the grid` 
-                        : `Need a Hint? Show ${question.type === 'reflection' ? 'Axis' : 'Rectangle'}`
-                      }
-                    </button>
-                  </div>
-                )}
 
                 {quizAppState === 'playing' ? (
                   <button onClick={submitQuizAnswer} className="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-lg shadow-md transition-colors">
@@ -619,7 +630,7 @@
                 ) : (
                   <div className="space-y-4">
                     <div className={`p-4 rounded-xl flex items-start gap-3 ${isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                      {isCorrect ? <Icon name="CheckCircle2" className="w-6 h-6 text-green-600 shrink-0" /> : <Icon name="XCircle" className="w-6 h-6 text-red-600 shrink-0" />}
+                      {isCorrect ? <CheckCircle2 className="w-6 h-6 text-green-600 shrink-0" /> : <XCircle className="w-6 h-6 text-red-600 shrink-0" />}
                       <div>
                         <h3 className={`font-bold ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>{isCorrect ? 'Correct!' : 'Incorrect'}</h3>
                         {isCorrect && <p className="text-sm mt-1 text-green-700">Auto-advancing to next question...</p>}
@@ -627,7 +638,7 @@
                       </div>
                     </div>
                     <button onClick={() => generateQuestion(quizMode)} className="w-full py-4 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-lg shadow-md transition-colors flex justify-center items-center gap-2">
-                      Next Question <Icon name="ArrowRight" className="w-5 h-5" />
+                      Next Question <ArrowRight className="w-5 h-5" />
                     </button>
                   </div>
                 )}
@@ -648,39 +659,18 @@
                 {question && (
                   <g>
                     <circle cx={toSvgX(question.origPoint.x)} cy={toSvgY(question.origPoint.y)} r="8" fill="#2563eb" />
-                    <text x={toSvgX(question.origPoint.x) + 12} y={toSvgY(question.origPoint.y) - 12} fontSize="22" fontWeight="bold" fill="#2563eb">P</text>
+                    <text x={toSvgX(question.origPoint.x) + 12} y={toSvgY(question.origPoint.y) - 12} fontSize="22" fontWeight="bold" fill="#2563eb">P({question.origPoint.x}, {question.origPoint.y})</text>
                   </g>
                 )}
                 
-                {question && question.type === 'reflection' && (
-                  <line
-                    x1={question.params.axis === 'x' ? 0 : center} y1={question.params.axis === 'x' ? center : 0}
-                    x2={question.params.axis === 'x' ? svgSize : center} y2={question.params.axis === 'x' ? center : svgSize}
-                    stroke="#eab308" strokeWidth="8" strokeDasharray="16 8" 
-                    opacity={(quizAppState === 'playing' && showHint) || (quizAppState === 'feedback' && animStep >= 2) ? 0.7 : 0}
-                    className="transition-opacity duration-1000"
-                    style={{ pointerEvents: 'none' }}
-                  />
-                )}
-
-                {question && question.type === 'rotation' && (
-                  <polygon
-                    points={`${center},${center} ${toSvgX(question.origPoint.x)},${center} ${toSvgX(question.origPoint.x)},${toSvgY(question.origPoint.y)} ${center},${toSvgY(question.origPoint.y)}`}
-                    fill="rgba(234, 179, 8, 0.1)"
-                    stroke="#eab308" strokeWidth="3" strokeDasharray="8 4"
-                    opacity={quizAppState === 'playing' && showHint ? 0.7 : 0}
-                    className="transition-opacity duration-1000"
-                    style={{ pointerEvents: 'none' }}
-                  />
-                )}
-
                 {quizAppState === 'feedback' && question && (
                   <g>
+                    {/* Educational Helpers (Axis or Rotation Path) */}
                     {question.type === 'reflection' && (
                       <line
                         x1={question.params.axis === 'x' ? 0 : center} y1={question.params.axis === 'x' ? center : 0}
                         x2={question.params.axis === 'x' ? svgSize : center} y2={question.params.axis === 'x' ? center : svgSize}
-                        stroke="#eab308" strokeWidth="8" strokeDasharray="16 8" opacity={animStep >= 2 ? 0.4 : 0}
+                        stroke="#eab308" strokeWidth="4" strokeDasharray="8 4" opacity={animStep >= 2 ? 0.4 : 0}
                         className="transition-opacity duration-1000"
                       />
                     )}
@@ -693,6 +683,7 @@
                       />
                     )}
 
+                    {/* Path line tracing the movement */}
                     {question.type === 'translation' && (
                       <React.Fragment>
                         <line 
@@ -721,6 +712,7 @@
                       />
                     )}
 
+                    {/* Target Ring that appears where the point lands */}
                     <circle 
                       cx={toSvgX(question.correctPoint.x)} cy={toSvgY(question.correctPoint.y)} 
                       r="12" fill="none" stroke="#16a34a" strokeWidth="3" 
@@ -728,6 +720,7 @@
                       className="transition-opacity duration-1000 delay-300" 
                     />
                     
+                    {/* Animated Point gliding across the canvas */}
                     {question.type !== 'rotation' ? (
                       <g 
                         className="transition-all duration-1000 ease-in-out" 
@@ -741,7 +734,7 @@
                       >
                         <circle cx={0} cy={0} r="6" fill="#16a34a" />
                         <text x={12} y={-12} fontSize="20" fontWeight="bold" fill="#16a34a">
-                          {isCorrect ? "Correct!" : "Correct P'"}
+                          {isCorrect && animStep >= 2 ? "Correct!" : (animStep >= 2 ? `Correct P'(${question.correctPoint.x}, ${question.correctPoint.y})` : "")}
                         </text>
                       </g>
                     ) : (
@@ -752,6 +745,7 @@
                           transform: `rotate(${animStep >= 2 ? (question.params.direction === 'cw' ? question.params.angle : -question.params.angle) : 0}deg)`
                         }}
                       >
+                        {/* Rectangle connecting Origin and Original Point */}
                         <polygon
                           points={`${center},${center} ${toSvgX(question.origPoint.x)},${center} ${toSvgX(question.origPoint.x)},${toSvgY(question.origPoint.y)} ${center},${toSvgY(question.origPoint.y)}`}
                           fill="rgba(22, 163, 74, 0.1)"
@@ -761,18 +755,19 @@
                         />
                         <circle cx={toSvgX(question.origPoint.x)} cy={toSvgY(question.origPoint.y)} r="6" fill="#16a34a" />
                         <text x={toSvgX(question.origPoint.x) + 12} y={toSvgY(question.origPoint.y) - 12} fontSize="20" fontWeight="bold" fill="#16a34a">
-                          {isCorrect ? "Correct!" : "Correct P'"}
+                          {isCorrect && animStep >= 2 ? "Correct!" : (animStep >= 2 ? `Correct P'(${question.correctPoint.x}, ${question.correctPoint.y})` : "")}
                         </text>
                       </g>
                     )}
                   </g>
                 )}
                 
+                {/* Draggable P' visual representation */}
                 <g style={{ pointerEvents: 'none' }}>
                   <circle cx={toSvgX(guessPoint.x)} cy={toSvgY(guessPoint.y)} r="36" fill="transparent" />
                   <circle cx={toSvgX(guessPoint.x)} cy={toSvgY(guessPoint.y)} r={isQuizDragging ? "20" : "14"} fill="none" stroke="#ea580c" strokeWidth="3" className="transition-all duration-200" />
                   <circle cx={toSvgX(guessPoint.x)} cy={toSvgY(guessPoint.y)} r="8" fill="#ea580c" />
-                  <text x={toSvgX(guessPoint.x) + 18} y={toSvgY(guessPoint.y) + 24} fontSize="24" fontWeight="bold" fill="#ea580c">P'</text>
+                  <text x={toSvgX(guessPoint.x) + 18} y={toSvgY(guessPoint.y) + 24} fontSize="24" fontWeight="bold" fill="#ea580c">P'({guessPoint.x}, {guessPoint.y})</text>
                 </g>
               </svg>
             </div>
@@ -794,7 +789,7 @@
                   mainView === 'explorer' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                <Icon name="Compass" className="w-4 h-4" /> Explorer Mode
+                <Compass className="w-4 h-4" /> Explorer Mode
               </button>
               <button 
                 onClick={() => setMainView('quiz')}
@@ -802,7 +797,7 @@
                   mainView === 'quiz' ? 'bg-white shadow-sm text-orange-600' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                <Icon name="GraduationCap" className="w-4 h-4" /> Quiz Mode
+                <GraduationCap className="w-4 h-4" /> Quiz Mode
               </button>
             </div>
           </header>
